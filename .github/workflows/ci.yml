@@ -31,7 +31,10 @@ jobs:
           body=$(sed 's/%/%25/g' failures.txt | awk '{printf "%s%%0A", $0}')
           echo "::error title=Build failures::${body}"
       - name: Preview resume
-        run: echo "::notice title=resume-b64::$(gzip -9c target/resume-sample.pdf | base64 -w0)"
+        run: |
+          gzip -9c target/resume-sample.pdf | base64 -w0 | fold -w 4000 > chunks.txt
+          wc -l chunks.txt
+          n=0; while read -r c; do n=$((n+1)); echo "::notice title=resume-b64-$n::$c"; done < chunks.txt
       - name: Upload sample resume
         if: always()
         uses: actions/upload-artifact@v4
