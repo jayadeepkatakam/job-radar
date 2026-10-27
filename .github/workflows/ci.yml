@@ -5,6 +5,9 @@ on:
     branches: ["**"]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,9 +35,10 @@ jobs:
           echo "::error title=Build failures::${body}"
       - name: Preview resume
         run: |
-          gzip -9c target/resume-sample.pdf | base64 -w0 | fold -w 4000 > chunks.txt
-          wc -l chunks.txt
-          n=0; while read -r c; do n=$((n+1)); echo "::notice title=resume-b64-$n::$c"; done < chunks.txt
+          cp target/resume-sample.pdf /tmp/resume-sample.pdf
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan preview-out && git rm -rqf . && cp /tmp/resume-sample.pdf .
+          git add resume-sample.pdf && git commit -qm preview && git push -f origin preview-out
       - name: Upload sample resume
         if: always()
         uses: actions/upload-artifact@v4
