@@ -56,7 +56,7 @@ class BrowserAgentBrowserTest {
     }
 
     private static String value(long id, String selector) {
-        return agent.inspect(id, page -> page.locator(selector).inputValue());
+        return agent.<String>inspect(id, page -> page.locator(selector).inputValue());
     }
 
     @Test
@@ -67,10 +67,10 @@ class BrowserAgentBrowserTest {
         assertThat(value(1, "#last_name")).isEqualTo("Example");
         assertThat(value(1, "#email")).isEqualTo("alex@example.com");
         assertThat(value(1, "#sponsor")).isEqualTo("Yes");
-        assertThat(agent.inspect(1, p -> p.locator("#gender option:checked").innerText())).isEqualTo("Decline To Self Identify");
-        assertThat(agent.inspect(1, p -> (Boolean) p.evaluate("document.getElementById('resume').files.length === 1"))).isTrue();
+        assertThat(agent.<String>inspect(1, p -> p.locator("#gender option:checked").innerText())).isEqualTo("Decline To Self Identify");
+        assertThat(agent.<Boolean>inspect(1, p -> (Boolean) p.evaluate("document.getElementById('resume').files.length === 1"))).isTrue();
         // The legal attestation stays unchecked, and the "why us" question has no draft without Claude.
-        assertThat(agent.inspect(1, p -> p.locator("#consent").isChecked())).isFalse();
+        assertThat(agent.<Boolean>inspect(1, p -> p.locator("#consent").isChecked())).isFalse();
         assertThat(r.report()).anyMatch(i -> i.label().startsWith("I certify") && i.needsReview());
         assertThat(r.status()).isEqualTo(ApplicationStatus.READY_FOR_REVIEW);
     }
@@ -82,7 +82,7 @@ class BrowserAgentBrowserTest {
         assertThat(value(2, "input[name=name]")).isEqualTo("Alex Example");
         assertThat(value(2, "input[name=org]")).isEqualTo("Acme Federal");
         assertThat(value(2, "input[name='urls[GitHub]']")).isEqualTo("https://github.com/alex-example");
-        assertThat(agent.inspect(2, p -> p.locator("input[name='cards[auth]'][value=Yes]").isChecked())).isTrue();
+        assertThat(agent.<Boolean>inspect(2, p -> p.locator("input[name='cards[auth]'][value=Yes]").isChecked())).isTrue();
         assertThat(value(2, "input[name='cards[years]']")).isEmpty();
         assertThat(r.report()).noneMatch(i -> i.label().toLowerCase().contains("submit"));
     }
@@ -92,7 +92,7 @@ class BrowserAgentBrowserTest {
         agent.start(3, fixture("ashby-like.html"), resume, answers(), s -> { }).join();
 
         assertThat(value(3, "#_systemfield_name")).isEqualTo("Alex Example");
-        assertThat(agent.inspect(3, p -> p.locator(".yesno button[aria-pressed=true]").innerText())).isEqualTo("Yes");
+        assertThat(agent.<String>inspect(3, p -> p.locator(".yesno button[aria-pressed=true]").innerText())).isEqualTo("Yes");
     }
 
     @Test
@@ -101,8 +101,8 @@ class BrowserAgentBrowserTest {
 
         assertThat(value(4, "#fn")).isEqualTo("Alex");
         assertThat(value(4, "#ln")).isEqualTo("Example");
-        assertThat(agent.inspect(4, p -> p.locator("#src").innerText())).isEqualTo("Company Website");
-        assertThat(agent.inspect(4, p -> p.locator("#pw-y").isChecked() || p.locator("#pw-n").isChecked())).isFalse();
+        assertThat(agent.<String>inspect(4, p -> p.locator("#src").innerText())).isEqualTo("Company Website");
+        assertThat(agent.<Boolean>inspect(4, p -> p.locator("#pw-y").isChecked() || p.locator("#pw-n").isChecked())).isFalse();
         assertThat(r.status()).isEqualTo(ApplicationStatus.NEEDS_INPUT);
     }
 }
