@@ -1,0 +1,33 @@
+<!doctype html><html><body>
+<form id="application-form">
+  <div class="field"><label for="first_name">First Name *</label><input id="first_name" name="first_name" required></div>
+  <div class="field"><label for="last_name">Last Name *</label><input id="last_name" name="last_name" required></div>
+  <div class="field"><label for="email">Email *</label><input id="email" type="email" required></div>
+  <div class="field"><label for="phone">Phone</label><input id="phone" type="tel"></div>
+  <div class="field"><label for="resume">Resume/CV *</label><input id="resume" type="file" style="display:none"></div>
+  <div class="field"><label for="linkedin">LinkedIn Profile</label><input id="linkedin"></div>
+  <div class="field">
+    <label for="sponsor" id="sponsor-label">Will you now or in the future require sponsorship for employment visa status? *</label>
+    <div class="select">
+      <input id="sponsor" role="combobox" aria-required="true" aria-labelledby="sponsor-label" autocomplete="off">
+      <div class="menu" role="listbox" hidden>
+        <div role="option">Yes</div><div role="option">No</div>
+      </div>
+    </div>
+  </div>
+  <div class="field"><label for="why">Why do you want to work at Acme?</label><textarea id="why" maxlength="1000"></textarea></div>
+  <div class="field"><label for="gender">Gender</label>
+    <select id="gender"><option value="">Select...</option><option value="1">Male</option><option value="2">Female</option><option value="3">Decline To Self Identify</option></select></div>
+  <div class="field"><input type="checkbox" id="consent"><label for="consent">I certify that the information provided is true.</label></div>
+  <button type="submit">Submit application</button>
+</form>
+<script>
+  // Behaves like react-select: typing filters, clicking an option sets the value.
+  const input = document.getElementById('sponsor'); const menu = input.nextElementSibling;
+  input.addEventListener('focus', () => menu.hidden = false);
+  input.addEventListener('click', () => menu.hidden = false);
+  menu.querySelectorAll('[role=option]').forEach(o => o.addEventListener('mousedown', e => {
+    e.preventDefault(); input.value = o.textContent; input.dataset.selected = o.textContent; menu.hidden = true; }));
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') menu.hidden = true; });
+</script>
+</body></html>

@@ -3,6 +3,9 @@
 spring:
   application:
     name: job-radar
+  config:
+    # Your personal answers and master resume for the apply agent (git-ignored).
+    import: optional:file:./config/candidate.yml
   datasource:
     url: jdbc:h2:file:./data/jobradar;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     username: sa
@@ -16,6 +19,8 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Local only by default: the apply agent drives a browser with your personal details.
+  address: ${SERVER_ADDRESS:127.0.0.1}
 
 management:
   endpoints:
@@ -105,6 +110,14 @@ jobradar:
     Education: M.S. Computer Science, University of North Texas (May 2025); B.Tech CSE, Amrita.
     Certifications: AWS and Azure. Uses AI coding assistants and has built LLM-based features.
     Will need visa sponsorship. No security clearance. Prefers mid-level roles (2-6 years).
+
+  apply:
+    # Where tailored resumes and application logs are saved.
+    output-dir: ./applications
+    # Browser profile, so sign-ins (e.g. Workday accounts) are remembered between runs.
+    browser-profile-dir: ./data/browser-profile
+    # How long to wait for you to sign in on Workday before giving up.
+    sign-in-timeout-minutes: 10
 
   boards:
     - { source: greenhouse, token: affirm,     company: Affirm }

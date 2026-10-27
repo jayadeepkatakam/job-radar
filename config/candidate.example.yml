@@ -1,0 +1,55 @@
+# Copy this file to config/candidate.yml and fill it in. config/candidate.yml is git-ignored.
+#
+# Leave any answer empty if you'd rather answer it yourself: the agent leaves that question
+# blank on the form and lists it under "needs your input".
+candidate:
+  first-name: Alex
+  last-name: Example
+  email: alex@example.com
+  phone: "(555) 555-0100"
+  city: Austin
+  state: TX
+  country: United States
+  linkedin: https://www.linkedin.com/in/alex-example
+  github: https://github.com/alex-example
+  website:
+  current-company: Example Corp
+  current-title: Software Engineer
+  years-experience: 4
+
+  # Work authorization. Answer honestly: these go straight onto applications.
+  authorized-to-work:        # true / false
+  requires-sponsorship:      # true / false (now or in the future)
+  willing-to-relocate:       # true / false
+  salary-expectation:        # e.g. "$120,000 - $140,000", or leave empty
+  notice-period: 2 weeks
+  how-did-you-hear: Company website
+
+  # Voluntary self-identification. Empty = "Decline to self-identify" / "I don't wish to answer".
+  eeo:
+    gender:
+    race:
+    veteran:
+    disability:
+
+  # Master resume. The tailoring step only reorders, trims and rephrases what's here;
+  # it is not allowed to add employers, skills or numbers that aren't in this file.
+  resume:
+    summary: >
+      Software Engineer with 4 years of experience building backend services in Java and Spring Boot.
+    skills:
+      - { category: Languages, items: "Java, Python, SQL" }
+      - { category: Backend, items: "Spring Boot, REST APIs, Microservices" }
+    experience:
+      - company: Example Corp
+        location: Remote, USA
+        title: Software Engineer
+        dates: Jan 2022 – Present
+        bullets:
+          - Built Spring Boot services that process 2M events per day.
+          - Cut p99 API latency by 35% by adding Redis caching.
+    projects: []
+    education:
+      - { degree: "M.S. Computer Science", school: "Example University | Austin, TX", dates: "May 2021" }
+    certifications:
+      - AWS Certified Developer – Associate

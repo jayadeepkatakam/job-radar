@@ -46,6 +46,17 @@
   dialog input, dialog textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
   .desc { white-space: pre-wrap; font-size: 14px; }
   textarea.notes { width: 100%; min-height: 70px; }
+  .banner { background: var(--panel); border: 1px solid var(--maybe); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
+  .banner:empty { display: none; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 1px 9px; border: 1px solid currentColor; }
+  .READY_FOR_REVIEW, .SUBMITTED { color: var(--apply); } .NEEDS_INPUT, .WAITING_FOR_SIGN_IN { color: var(--maybe); }
+  .FAILED { color: var(--skip); } .PREPARING, .FILLING, .CANCELLED { color: var(--muted); }
+  .app { grid-template-columns: 1fr auto; }
+  table.report { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  table.report td { border-top: 1px solid var(--line); padding: 5px 6px; vertical-align: top; }
+  table.report tr.flag td:first-child { box-shadow: inset 3px 0 var(--maybe); }
+  table.report .v { max-width: 340px; white-space: pre-wrap; word-break: break-word; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
   @media (max-width: 640px) {
     .card { grid-template-columns: 48px 1fr; }
     .controls { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
@@ -56,11 +67,13 @@
 <header>
   <h1>Job Radar</h1>
   <div style="display:flex;gap:8px">
+    <button id="applyNew">Apply to a job</button>
     <button id="add">Add a job</button>
     <button id="run" class="primary">Fetch new jobs</button>
   </div>
 </header>
 <main>
+  <div class="banner" id="banner"></div>
   <div class="tabs" id="tabs"></div>
   <div class="status-line" id="status"></div>
   <div id="list"></div>
@@ -83,9 +96,31 @@
   </form>
 </dialog>
 
+<dialog id="applyDialog">
+  <form id="applyForm" method="dialog">
+    <strong>Apply to a job</strong>
+    <span class="meta">The agent tailors your resume, opens the application in a browser window and fills it in.
+      It stops before Submit so you can review everything first.</span>
+    <input name="url" placeholder="Link to the job or application page (Greenhouse, Lever, Ashby, Workday)" required>
+    <input name="company" placeholder="Company" required>
+    <input name="title" placeholder="Job title" required>
+    <textarea name="description" rows="9" placeholder="Paste the full job description" required></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" id="cancelApply">Cancel</button>
+      <button class="primary" id="startApply">Start</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 const STATUSES = ["NEW", "READY", "APPLIED", "INTERVIEW", "OFFER", "CLOSED"];
+const APPS = "APPS";
 let current = "NEW";
+let pollTimer = null;
+const ACTIVE = ["PREPARING", "FILLING", "WAITING_FOR_SIGN_IN"];
+const STATUS_TEXT = { PREPARING: "Tailoring resume", FILLING: "Filling form", WAITING_FOR_SIGN_IN: "Sign in needed",
+  READY_FOR_REVIEW: "Ready for your review", NEEDS_INPUT: "Needs your input", SUBMITTED: "Submitted",
+  FAILED: "Failed", CANCELLED: "Cancelled" };
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, props = {}, ...kids) => {
@@ -104,12 +139,15 @@ async function api(path, options = {}) {
 }
 
 function renderTabs() {
-  $("#tabs").replaceChildren(...STATUSES.map(s =>
-    el("button", { textContent: s[0] + s.slice(1).toLowerCase(), ariaPressed: String(s === current),
+  const tabs = [...STATUSES, APPS];
+  $("#tabs").replaceChildren(...tabs.map(s =>
+    el("button", { textContent: s === APPS ? "Applications" : s[0] + s.slice(1).toLowerCase(), ariaPressed: String(s === current),
                    onclick: () => { current = s; renderTabs(); load(); } })));
 }
 
 async function load() {
+  clearTimeout(pollTimer);
+  if (current === APPS) return loadApps();
   $("#status").textContent = "Loading…";
   try {
     const jobs = await api("/api/jobs?status=" + current);
@@ -141,7 +179,8 @@ function card(job) {
       job.dealBreakers?.length ? el("div", { className: "flags" }, job.dealBreakers.map(d => el("span", { className: "flag", textContent: d }))) : "",
       job.notes ? el("div", { className: "meta", textContent: "Notes: " + job.notes }) : ""),
     el("div", { className: "controls" }, status, follow,
-      el("button", { textContent: "Details", onclick: () => openDetail(job.id) })));
+      el("button", { textContent: "Details", onclick: () => openDetail(job.id) }),
+      job.url ? el("button", { className: "primary", textContent: "Apply", onclick: () => startApply({ jobId: job.id }) }) : ""));
 }
 
 async function patch(id, body, reload = false) {
@@ -205,8 +244,76 @@ $("#addForm").onsubmit = async (ev) => {
   }
 };
 
+async function startApply(body) {
+  try {
+    await api("/api/applications", { method: "POST", body: JSON.stringify(body) });
+    current = APPS; renderTabs(); load();
+  } catch (e) {
+    alert("Couldn't start: " + e.message);
+  }
+}
+
+async function loadApps() {
+  try {
+    const apps = await api("/api/applications");
+    $("#status").textContent = apps.length ? apps.length + " application" + (apps.length === 1 ? "" : "s") : "";
+    const cards = await Promise.all(apps.map(async a => appCard(ACTIVE.includes(a.status) || a.status === "NEEDS_INPUT" || a.status === "READY_FOR_REVIEW"
+        ? await api("/api/applications/" + a.id) : a)));
+    $("#list").replaceChildren(...(cards.length ? cards : [el("div", { className: "empty", textContent: "No applications yet. Press Apply on a job, or \"Apply to a job\"." })]));
+    if (apps.some(a => ACTIVE.includes(a.status))) pollTimer = setTimeout(() => current === APPS && loadApps(), 3000);
+  } catch (e) {
+    $("#status").textContent = "Couldn't load applications: " + e.message;
+  }
+}
+
+function appCard(a) {
+  const act = (label, path, primary) => el("button", { className: primary ? "primary" : "", textContent: label,
+    onclick: async () => { try { await api(`/api/applications/${a.id}/${path}`, { method: "POST" }); loadApps(); } catch (e) { alert(e.message); } } });
+  const open = !["SUBMITTED", "CANCELLED"].includes(a.status);
+  const report = (a.report || []).length ? el("table", { className: "report" },
+    a.report.map(r => el("tr", { className: r.needsReview ? "flag" : "" },
+      el("td", { textContent: r.label + (r.required ? " *" : "") }),
+      el("td", { className: "v", textContent: r.value ? (r.kind === "file" ? "Resume uploaded" : r.value) : "—" }),
+      el("td", { className: "meta", textContent: r.note || "" })))) : "";
+  return el("div", { className: "card app" },
+    el("div", {},
+      el("div", { className: "title" }, a.title + " — " + a.company, " ",
+        el("span", { className: "pill " + a.status, textContent: STATUS_TEXT[a.status] || a.status })),
+      el("div", { className: "meta", textContent: a.ats + " · " + a.url }),
+      el("div", { className: "reason", textContent: a.message || "" }),
+      ...(a.tailorNotes || []).map(n => el("div", { className: "meta", textContent: "Resume: " + n })),
+      report),
+    el("div", { className: "controls" },
+      a.hasResume ? el("a", { href: `/api/applications/${a.id}/resume`, target: "_blank", textContent: "View resume" }) : "",
+      open && !ACTIVE.includes(a.status) ? act("Fill this page", "fill") : "",
+      open ? act("I submitted it", "submitted", true) : "",
+      open ? act("Cancel", "cancel") : ""));
+}
+
+async function loadProfile() {
+  try {
+    const p = await api("/api/profile/status");
+    if (!p.configured) {
+      $("#banner").textContent = "To use Apply, copy config/candidate.example.yml to config/candidate.yml, fill it in, and restart.";
+    } else if (p.missing.length) {
+      $("#banner").textContent = "In config/candidate.yml, these are still empty and will be left for you on every form: " + p.missing.join(", ") + ".";
+    }
+  } catch (e) { /* banner is optional */ }
+}
+
+$("#applyNew").onclick = () => $("#applyDialog").showModal();
+$("#cancelApply").onclick = () => $("#applyDialog").close();
+$("#applyForm").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const body = Object.fromEntries(new FormData(ev.target));
+  $("#applyDialog").close();
+  ev.target.reset();
+  await startApply(body);
+};
+
 renderTabs();
 load();
+loadProfile();
 </script>
 </body>
 </html>

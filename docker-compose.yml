@@ -19,6 +19,7 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: postgres
+      SERVER_ADDRESS: 0.0.0.0
       DB_URL: jdbc:postgresql://db:5432/jobradar
       DB_USER: jobradar
       DB_PASSWORD: jobradar

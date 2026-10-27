@@ -1,0 +1,18 @@
+<!doctype html><html><body>
+<div data-automation-id="applyFlowPage">
+  <div data-automation-id="formField-legalNameSection_firstName"><label for="fn">Given Name(s)*</label><input id="fn" aria-required="true"></div>
+  <div data-automation-id="formField-legalNameSection_lastName"><label for="ln">Family Name*</label><input id="ln" aria-required="true"></div>
+  <div data-automation-id="formField-source"><label id="src-label" for="src">How Did You Hear About Us?*</label>
+    <button id="src" type="button" aria-haspopup="listbox" aria-labelledby="src-label">Select One</button>
+    <ul role="listbox" hidden><li role="option">Job Board</li><li role="option">Company Website</li><li role="option">Referral</li></ul></div>
+  <fieldset><legend>Have you previously worked for this company?*</legend>
+    <input type="radio" id="pw-y" name="prev" value="true"><label for="pw-y">Yes</label>
+    <input type="radio" id="pw-n" name="prev" value="false"><label for="pw-n">No</label></fieldset>
+  <button data-automation-id="pageFooterNextButton" type="button">Save and Continue</button>
+</div>
+<script>
+  const b = document.getElementById('src'); const lb = b.nextElementSibling;
+  b.addEventListener('click', () => lb.hidden = !lb.hidden);
+  lb.querySelectorAll('li').forEach(li => li.addEventListener('click', () => { b.textContent = li.textContent; lb.hidden = true; }));
+</script>
+</body></html>

@@ -1,0 +1,17 @@
+<!doctype html><html><body>
+<div class="form">
+  <div class="field-entry"><label for="_systemfield_name">Name</label><input id="_systemfield_name" type="text"></div>
+  <div class="field-entry"><label for="_systemfield_email">Email</label><input id="_systemfield_email" type="email"></div>
+  <div class="field-entry yesno">
+    <label class="question-title">Do you require visa sponsorship?*</label>
+    <div class="buttons"><button type="button">Yes</button><button type="button">No</button></div>
+  </div>
+  <div class="field-entry"><label for="loc">Where are you currently located?</label><input id="loc" role="combobox"></div>
+  <button type="submit">Submit Application</button>
+</div>
+<script>
+  document.querySelectorAll('.yesno button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.yesno button').forEach(x => x.removeAttribute('aria-pressed'));
+    b.setAttribute('aria-pressed', 'true'); }));
+</script>
+</body></html>

@@ -1,0 +1,26 @@
+<!doctype html><html><body>
+<form>
+  <ul>
+    <li class="application-question"><div class="application-label">Full name ✱</div>
+      <div class="application-field"><input name="name" type="text" required></div></li>
+    <li class="application-question"><div class="application-label">Email ✱</div>
+      <div class="application-field"><input name="email" type="email" required></div></li>
+    <li class="application-question"><div class="application-label">Current company</div>
+      <div class="application-field"><input name="org" type="text"></div></li>
+    <li class="application-question"><div class="application-label">GitHub URL</div>
+      <div class="application-field"><input name="urls[GitHub]" type="text"></div></li>
+  </ul>
+  <div class="application-question custom-question">
+    <div class="application-label"><div class="text">Are you legally authorized to work in the United States?</div></div>
+    <ul class="application-field">
+      <li><label><input type="radio" name="cards[auth]" value="Yes"><span>Yes</span></label></li>
+      <li><label><input type="radio" name="cards[auth]" value="No"><span>No</span></label></li>
+    </ul>
+  </div>
+  <div class="application-question custom-question">
+    <div class="application-label"><div class="text">How many years of Java experience do you have?</div></div>
+    <div class="application-field"><input type="text" name="cards[years]"></div>
+  </div>
+  <button type="button" id="btn-submit">Submit application</button>
+</form>
+</body></html>
