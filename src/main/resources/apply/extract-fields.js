@@ -110,8 +110,11 @@
     }
 
     if (el.getAttribute("role") === "combobox" || el.getAttribute("aria-haspopup") === "listbox") {
+      // A dropdown button shows a placeholder ("Select One") until something is picked.
+      let current = clean(el.tagName === "BUTTON" ? el.innerText : el.value);
+      if (/^(select|choose|please select|--)/i.test(current)) current = "";
       fields.push({ id: tag(el), kind: "combobox", label: labelFor(el), required: isRequired(el, rawLabel),
-                    maxLength: null, value: clean(el.value || el.innerText || ""), options: [] });
+                    maxLength: null, value: current, options: [] });
       continue;
     }
 
