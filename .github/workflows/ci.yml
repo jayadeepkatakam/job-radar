@@ -16,11 +16,20 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Build and test
-        run: mvn -B verify
+        run: mvn -B verify 2>&1 | tee build.log; test ${PIPESTATUS[0]} -eq 0
       - name: Install Chromium for browser tests
         run: mvn -B -q exec:java -Dexec.args="install --with-deps chromium"
       - name: Browser tests (fills sample application forms)
-        run: mvn -B test -Dgroups=browser -Dsurefire.excludedGroups=
+        run: mvn -B test -Dgroups=browser -Dsurefire.excludedGroups= 2>&1 | tee -a build.log; test ${PIPESTATUS[0]} -eq 0
+      - name: Summarize failures
+        if: failure()
+        run: |
+          {
+            grep -E "\[ERROR\]" build.log | grep -vE "To see the full stack|Re-run Maven|Help 1|^\[ERROR\] *$|For more information" | head -60
+            for f in target/surefire-reports/*.txt; do grep -A6 -E "FAILURE|ERROR" "$f" | head -30; done 2>/dev/null
+          } > failures.txt || true
+          body=$(sed 's/%/%25/g' failures.txt | awk '{printf "%s%%0A", $0}')
+          echo "::error title=Build failures::${body}"
       - name: Upload sample resume
         if: always()
         uses: actions/upload-artifact@v4
