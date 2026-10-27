@@ -45,15 +45,21 @@ public class ResumePdfRenderer {
         return toPdf(html(candidate, current, smallest[0], smallest[1]));
     }
 
-    /** Removes the last bullet from the job (oldest first) that has the most bullets, keeping at least 2 each. */
+    /**
+     * Removes one bullet, oldest job first: older jobs go down to 3 bullets before the current job loses
+     * any, then everything goes down to 2. Returns null when nothing more can be trimmed.
+     */
     static Resume dropOneBullet(Resume r) {
         int target = -1;
-        int most = 2;
-        for (int i = r.experience().size() - 1; i >= 0; i--) {
-            int n = r.experience().get(i).bullets().size();
-            if (n > most) {
-                most = n;
-                target = i;
+        for (int floor : new int[]{3, 2}) {
+            for (int i = r.experience().size() - 1; i >= 0 && target < 0; i--) {
+                int keep = i == 0 && floor == 3 ? 4 : floor;
+                if (r.experience().get(i).bullets().size() > keep) {
+                    target = i;
+                }
+            }
+            if (target >= 0) {
+                break;
             }
         }
         if (target < 0) {
