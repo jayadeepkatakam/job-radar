@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Radar</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --text: #16181d; --muted: #616875; --line: #e3e6eb;
+    --accent: #2f5bd3; --apply: #1d7a46; --maybe: #9a6a00; --skip: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111317; --panel: #1a1d23; --text: #e8eaee; --muted: #9aa1ad; --line: #2b2f37;
+            --accent: #7c9cff; --apply: #4cc283; --maybe: #e0b341; --skip: #f2786d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+           padding: 16px; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  button { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .6; cursor: progress; }
+  main { max-width: 1100px; margin: 0 auto; padding: 0 16px 48px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tabs button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .status-line { color: var(--muted); font-size: 13px; min-height: 18px; margin-bottom: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 10px;
+          display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: start; }
+  .score { font-size: 22px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+  .score small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+  .APPLY { color: var(--apply); } .MAYBE { color: var(--maybe); } .SKIP { color: var(--skip); }
+  .title { font-weight: 600; }
+  .title a { color: inherit; }
+  .meta, .reason { color: var(--muted); font-size: 13px; }
+  .flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .flag { font-size: 12px; border: 1px solid var(--skip); color: var(--skip); border-radius: 999px; padding: 1px 8px; }
+  .controls { display: grid; gap: 6px; min-width: 150px; }
+  .controls input, .controls select { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text);
+           width: min(720px, calc(100vw - 32px)); max-height: 85vh; padding: 18px; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog form { display: grid; gap: 10px; }
+  dialog input, dialog textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  .desc { white-space: pre-wrap; font-size: 14px; }
+  textarea.notes { width: 100%; min-height: 70px; }
+  @media (max-width: 640px) {
+    .card { grid-template-columns: 48px 1fr; }
+    .controls { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Radar</h1>
+  <div style="display:flex;gap:8px">
+    <button id="add">Add a job</button>
+    <button id="run" class="primary">Fetch new jobs</button>
+  </div>
+</header>
+<main>
+  <div class="tabs" id="tabs"></div>
+  <div class="status-line" id="status"></div>
+  <div id="list"></div>
+</main>
+
+<dialog id="detail"></dialog>
+
+<dialog id="addDialog">
+  <form id="addForm" method="dialog">
+    <strong>Add a job you found elsewhere</strong>
+    <input name="company" placeholder="Company" required>
+    <input name="title" placeholder="Job title" required>
+    <input name="location" placeholder="Location">
+    <input name="url" placeholder="Link to the posting">
+    <textarea name="description" rows="10" placeholder="Paste the full job description" required></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" id="cancelAdd">Cancel</button>
+      <button class="primary" id="saveAdd">Screen and save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const STATUSES = ["NEW", "READY", "APPLIED", "INTERVIEW", "OFFER", "CLOSED"];
+let current = "NEW";
+
+const $ = (sel) => document.querySelector(sel);
+const el = (tag, props = {}, ...kids) => {
+  const n = Object.assign(document.createElement(tag), props);
+  kids.flat().forEach(k => n.append(k));
+  return n;
+};
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || res.statusText);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function renderTabs() {
+  $("#tabs").replaceChildren(...STATUSES.map(s =>
+    el("button", { textContent: s[0] + s.slice(1).toLowerCase(), ariaPressed: String(s === current),
+                   onclick: () => { current = s; renderTabs(); load(); } })));
+}
+
+async function load() {
+  $("#status").textContent = "Loading…";
+  try {
+    const jobs = await api("/api/jobs?status=" + current);
+    $("#status").textContent = jobs.length + " job" + (jobs.length === 1 ? "" : "s");
+    $("#list").replaceChildren(...(jobs.length ? jobs.map(card) : [el("div", { className: "empty", textContent: "Nothing here yet." })]));
+  } catch (e) {
+    $("#status").textContent = "Couldn't load jobs: " + e.message;
+  }
+}
+
+function card(job) {
+  const verdict = job.verdict || "";
+  const status = el("select", { onchange: () => patch(job.id, { status: status.value }, true) },
+    STATUSES.map(s => el("option", { value: s, textContent: s[0] + s.slice(1).toLowerCase(), selected: s === job.status })));
+  const follow = el("input", { type: "date", value: job.followUp || "", title: "Follow up on",
+    onchange: () => patch(job.id, follow.value ? { followUp: follow.value } : { clearFollowUp: true }) });
+
+  const titleLink = job.url
+    ? el("a", { href: job.url, target: "_blank", rel: "noopener", textContent: job.title })
+    : document.createTextNode(job.title);
+
+  return el("div", { className: "card" },
+    el("div", { className: "score " + verdict },
+      job.fitScore ?? "–", el("small", { textContent: verdict })),
+    el("div", {},
+      el("div", { className: "title" }, titleLink),
+      el("div", { className: "meta", textContent: [job.company, job.location, job.source].filter(Boolean).join(" · ") }),
+      el("div", { className: "reason", textContent: job.fitReason || "" }),
+      job.dealBreakers?.length ? el("div", { className: "flags" }, job.dealBreakers.map(d => el("span", { className: "flag", textContent: d }))) : "",
+      job.notes ? el("div", { className: "meta", textContent: "Notes: " + job.notes }) : ""),
+    el("div", { className: "controls" }, status, follow,
+      el("button", { textContent: "Details", onclick: () => openDetail(job.id) })));
+}
+
+async function patch(id, body, reload = false) {
+  try {
+    await api("/api/jobs/" + id, { method: "PATCH", body: JSON.stringify(body) });
+    if (reload) load();
+  } catch (e) {
+    $("#status").textContent = "Couldn't save: " + e.message;
+  }
+}
+
+async function openDetail(id) {
+  const job = await api("/api/jobs/" + id);
+  const notes = el("textarea", { className: "notes", value: job.notes || "", placeholder: "Notes: referral, recruiter, salary range…" });
+  const d = $("#detail");
+  d.replaceChildren(
+    el("div", { className: "title", textContent: job.title + " — " + job.company }),
+    el("p", { className: "reason", textContent: job.fitReason || "" }),
+    notes,
+    el("div", { style: "display:flex;gap:8px;justify-content:flex-end;margin:8px 0 14px" },
+      el("button", { textContent: "Delete", onclick: async () => {
+        if (!confirm("Delete this job?")) return;
+        await api("/api/jobs/" + id, { method: "DELETE" }); d.close(); load(); } }),
+      el("button", { textContent: "Close", onclick: () => d.close() }),
+      el("button", { className: "primary", textContent: "Save notes", onclick: async () => {
+        await patch(id, { notes: notes.value }); d.close(); load(); } })),
+    el("div", { className: "desc", textContent: job.description || "No description." }));
+  d.showModal();
+}
+
+$("#run").onclick = async () => {
+  const btn = $("#run");
+  btn.disabled = true; btn.textContent = "Fetching…";
+  try {
+    const r = await api("/api/ingest/run", { method: "POST" });
+    $("#status").textContent = `Checked ${r.fetched} postings, added ${r.added} new` +
+      (r.errors.length ? ` (${r.errors.length} board${r.errors.length === 1 ? "" : "s"} failed)` : "");
+    current = "NEW"; renderTabs(); setTimeout(load, 0);
+  } catch (e) {
+    $("#status").textContent = "Fetch failed: " + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = "Fetch new jobs";
+  }
+};
+
+$("#add").onclick = () => $("#addDialog").showModal();
+$("#cancelAdd").onclick = () => $("#addDialog").close();
+$("#addForm").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const form = ev.target;
+  const btn = $("#saveAdd");
+  btn.disabled = true; btn.textContent = "Scoring…";
+  try {
+    await api("/api/jobs", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+    form.reset(); $("#addDialog").close();
+    current = "NEW"; renderTabs(); load();
+  } catch (e) {
+    alert("Couldn't add: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Screen and save";
+  }
+};
+
+renderTabs();
+load();
+</script>
+</body>
+</html>

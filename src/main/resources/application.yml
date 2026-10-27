@@ -1,0 +1,127 @@
+# Default profile: an H2 file database in ./data, so `mvn spring-boot:run` works with nothing else installed.
+# Use the "postgres" profile (see application-postgres.yml, docker-compose.yml) for a real database.
+spring:
+  application:
+    name: job-radar
+  datasource:
+    url: jdbc:h2:file:./data/jobradar;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: none   # Flyway owns the schema
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+jobradar:
+  schedule:
+    enabled: true
+    cron: "0 0 8 * * MON-FRI"
+    zone: America/New_York
+
+  claude:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${CLAUDE_MODEL:claude-sonnet-5-5}
+
+  # A title must contain one of these...
+  title-include:
+    - software engineer
+    - software developer
+    - backend
+    - back-end
+    - java
+    - full stack
+    - full-stack
+    - platform engineer
+    - api engineer
+  # ...and none of these.
+  title-exclude:
+    - principal
+    - staff
+    - director
+    - manager
+    - intern
+    - frontend
+    - front-end
+    - ios
+    - android
+    - mobile
+    - designer
+
+  skills:
+    - Java
+    - Spring Boot
+    - Spring
+    - Microservices
+    - REST
+    - Kafka
+    - Redis
+    - Temporal
+    - AWS
+    - Azure
+    - Docker
+    - Kubernetes
+    - Terraform
+    - Jenkins
+    - CI/CD
+    - PostgreSQL
+    - Oracle
+    - PL/SQL
+    - SQL Server
+    - MySQL
+    - SQL
+    - Python
+    - JUnit
+    - Distributed systems
+    - Event-driven
+    - Batch
+    - ETL
+    - Observability
+    - Grafana
+    - Splunk
+    - OAuth
+    - LLM
+    - Generative AI
+
+  profile: |
+    Jayadeep Katakam - Software Engineer, 4+ years.
+    Global Alliant (Jun 2026-present), Software Engineer on HRSA's IRMS federal financial system:
+    Java/Spring Boot services and REST APIs; nightly batch pipeline loading UFMS extracts via SFTP and
+    Oracle SQL*Loader; Oracle PL/SQL validation packages; production batch troubleshooting; CI/CD.
+    Deloitte (to May 2026), Software Engineer in financial services: Java/Spring Boot microservices,
+    Kafka pipelines processing millions of daily transactions, Temporal workflows that cut failure
+    recovery time by 80%, Redis caching, fraud-detection rules, RBAC and PCI-DSS controls, AWS and Azure.
+    Earlier: graduate assistant at University of North Texas; software engineer at ExcelR (India).
+    Education: M.S. Computer Science, University of North Texas (May 2025); B.Tech CSE, Amrita.
+    Certifications: AWS and Azure. Uses AI coding assistants and has built LLM-based features.
+    Will need visa sponsorship. No security clearance. Prefers mid-level roles (2-6 years).
+
+  boards:
+    - { source: greenhouse, token: affirm,     company: Affirm }
+    - { source: greenhouse, token: stripe,     company: Stripe }
+    - { source: greenhouse, token: robinhood,  company: Robinhood }
+    - { source: greenhouse, token: coinbase,   company: Coinbase }
+    - { source: greenhouse, token: datadog,    company: Datadog }
+    - { source: greenhouse, token: brex,       company: Brex }
+    - { source: greenhouse, token: chime,      company: Chime }
+    - { source: greenhouse, token: gusto,      company: Gusto }
+    - { source: greenhouse, token: airtable,   company: Airtable }
+    - { source: greenhouse, token: cloudflare, company: Cloudflare }
+    - { source: greenhouse, token: mongodb,    company: MongoDB }
+    - { source: greenhouse, token: twilio,     company: Twilio }
+    - { source: greenhouse, token: toast,      company: Toast }
+    - { source: greenhouse, token: samsara,    company: Samsara }
+    - { source: greenhouse, token: okta,       company: Okta }
+    - { source: lever,      token: plaid,      company: Plaid }
+    - { source: lever,      token: palantir,   company: Palantir }
+    - { source: lever,      token: netflix,    company: Netflix }
