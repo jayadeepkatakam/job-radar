@@ -281,7 +281,8 @@ public class BrowserAgent {
         List<FormField.Option> visible = options.allInnerTexts().stream().map(s -> new FormField.Option(null, s.strip())).toList();
         Optional<FormField.Option> match = OptionMatcher.match(visible, v);
         if (match.isPresent()) {
-            Pattern exact = Pattern.compile("^\\s*" + Pattern.quote(match.get().label()) + "\\s*$");
+            // Playwright hands the pattern to JavaScript, which doesn't understand Java's \\Q...\\E quoting.
+            Pattern exact = Pattern.compile("^\\s*" + jsRegexEscape(match.get().label()) + "\\s*$");
             options.filter(new Locator.FilterOptions().setHasText(exact)).first().click();
         } else if (typeable && !visible.isEmpty()) {
             // Autocomplete (e.g. location): take the first suggestion for what we typed.
@@ -292,6 +293,10 @@ public class BrowserAgent {
             page.keyboard().press("Escape");
             throw new IllegalStateException("no matching option");
         }
+    }
+
+    static String jsRegexEscape(String s) {
+        return s.replaceAll("[\\\\^$.*+?()\\[\\]{}|/-]", "\\\\$0");
     }
 
     private static void check(Page page, Locator el) {
